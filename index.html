@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Generate fictional billing addresses for testing — Macintosh-styled web app." />
+  <meta name="theme-color" content="#888888" />
+  <title>Billing Generator</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- Favicon: same pixel CRT terminal with > _ prompt as the menu-bar logo and banner icon (phosphor green to match terminal theme) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' shape-rendering='crispEdges'%3E%3Cg fill='%235cff7c'%3E%3Crect x='1' y='1' width='12' height='1'/%3E%3Crect x='0' y='2' width='1' height='7'/%3E%3Crect x='13' y='2' width='1' height='7'/%3E%3Crect x='1' y='9' width='12' height='1'/%3E%3Crect x='2' y='3' width='1' height='1'/%3E%3Crect x='2' y='4' width='2' height='1'/%3E%3Crect x='3' y='5' width='2' height='1'/%3E%3Crect x='2' y='6' width='2' height='1'/%3E%3Crect x='2' y='7' width='1' height='1'/%3E%3Crect x='9' y='5' width='3' height='1'/%3E%3Crect x='4' y='10' width='6' height='1'/%3E%3Crect x='3' y='11' width='8' height='1'/%3E%3C/g%3E%3C/svg%3E" />
+
+  <!-- Retro CRT + 8-bit fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <!-- Theme bootstrap (inline, runs before CSS to avoid flash of wrong theme) -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("billing-gen-theme") || "auto";
+        var prefersDark = window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var resolved = saved === "dark" || (saved === "auto" && prefersDark)
+          ? "dark"
+          : "light";
+        document.documentElement.setAttribute("data-theme", resolved);
+        document.documentElement.setAttribute("data-theme-pref", saved);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- ============================================================
+       BOOT SPLASH — CRT terminal welcome screen on first load
+       Standalone "first page" — fully covers landing until ready
+       ============================================================ -->
+  <div class="boot-splash" id="bootSplash" aria-hidden="true">
+    <div class="boot-content">
+      <div class="boot-crt" aria-hidden="true">
+        <!-- Same pixel CRT design as the brand-logo, scaled up for the splash -->
+        <svg viewBox="0 0 14 14" width="140" height="140" shape-rendering="crispEdges" aria-hidden="true">
+          <g fill="currentColor">
+            <!-- CRT monitor outer frame -->
+            <rect x="1" y="1" width="12" height="1"/>
+            <rect x="0" y="2" width="1" height="7"/>
+            <rect x="13" y="2" width="1" height="7"/>
+            <rect x="1" y="9" width="12" height="1"/>
+            <!-- > arrow (prompt symbol) inside screen -->
+            <rect x="2" y="3" width="1" height="1"/>
+            <rect x="2" y="4" width="2" height="1"/>
+            <rect x="3" y="5" width="2" height="1"/>
+            <rect x="2" y="6" width="2" height="1"/>
+            <rect x="2" y="7" width="1" height="1"/>
+            <!-- _ blinking cursor underscore -->
+            <rect x="9" y="5" width="3" height="1" class="boot-crt-cursor"/>
+            <!-- Stand neck -->
+            <rect x="4" y="10" width="6" height="1"/>
+            <!-- Stand base -->
+            <rect x="3" y="11" width="8" height="1"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="boot-message">INITIALIZING TERMINAL…</div>
+
+      <!-- Terminal-style boot log — populated line-by-line via JS -->
+      <pre class="boot-log" id="bootLog" aria-hidden="true"></pre>
+
+      <div class="boot-progress" aria-hidden="true">
+        <div class="boot-progress-fill"></div>
+      </div>
+
+      <div class="boot-footer">v1.0 · BILLING GENERATOR</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       BEACH BALL CURSOR (shown during generate)
+       ============================================================ -->
+  <div class="beach-ball" id="beachBall" aria-hidden="true">
+    <div class="beach-ball-inner">
+      <div class="beach-ball-slice slice-1"></div>
+      <div class="beach-ball-slice slice-2"></div>
+      <div class="beach-ball-slice slice-3"></div>
+      <div class="beach-ball-slice slice-4"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DRAG OUTLINE (used during window drag)
+       ============================================================ -->
+  <div class="drag-outline" id="dragOutline" aria-hidden="true"></div>
+
+  <!-- ============================================================
+       ASCII CHARACTER-NOISE BACKGROUND
+       Generated by JS on load + resize. Sits behind everything,
+       very low opacity for a "data terminal" atmosphere.
+       ============================================================ -->
+  <div class="ascii-noise" id="asciiNoise" aria-hidden="true"></div>
+
+  <!-- ============================================================
+       TOP MENU BAR
+       ============================================================ -->
+  <div class="menu-bar" role="menubar" aria-label="Application menu">
+    <div class="menu-trigger" data-menu="apple" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      <span class="brand-logo" aria-hidden="true" title="Billing Generator">
+        <!-- Custom pixel CRT terminal with > _ prompt inside.
+             Uses currentColor so it inherits the menu text color
+             (and inverts cleanly on hover via menu-trigger.is-open). -->
+        <svg viewBox="0 0 14 14" width="14" height="14" shape-rendering="crispEdges">
+          <g fill="currentColor">
+            <!-- CRT monitor outer frame -->
+            <rect x="1" y="1" width="12" height="1"/>
+            <rect x="0" y="2" width="1" height="7"/>
+            <rect x="13" y="2" width="1" height="7"/>
+            <rect x="1" y="9" width="12" height="1"/>
+            <!-- > arrow (prompt symbol) inside screen -->
+            <rect x="2" y="3" width="1" height="1"/>
+            <rect x="2" y="4" width="2" height="1"/>
+            <rect x="3" y="5" width="2" height="1"/>
+            <rect x="2" y="6" width="2" height="1"/>
+            <rect x="2" y="7" width="1" height="1"/>
+            <!-- _ blinking cursor underscore (right side of screen) -->
+            <rect x="9" y="5" width="3" height="1" class="brand-logo-cursor"/>
+            <!-- Stand neck -->
+            <rect x="4" y="10" width="6" height="1"/>
+            <!-- Stand base -->
+            <rect x="3" y="11" width="8" height="1"/>
+          </g>
+        </svg>
+      </span>
+    </div>
+    <div class="menu-trigger menu-bold" data-menu="file" aria-haspopup="true" aria-expanded="false" tabindex="0">File</div>
+    <div class="menu-trigger" data-menu="edit" aria-haspopup="true" aria-expanded="false" tabindex="0">Edit</div>
+    <div class="menu-trigger" data-menu="view" aria-haspopup="true" aria-expanded="false" tabindex="0">View</div>
+    <div class="menu-trigger" data-menu="special" aria-haspopup="true" aria-expanded="false" tabindex="0">Special</div>
+    <div class="menu-trigger" data-menu="help" aria-haspopup="true" aria-expanded="false" tabindex="0">Help</div>
+
+    <!-- Theme toggle (light ⇄ dark). Shows the destination icon. -->
+    <button class="theme-toggle" id="themeToggle" type="button"
+            aria-label="Switch to dark mode" title="Switch to dark mode">
+      <!-- Sun (shown in DARK mode → click switches to light) -->
+      <svg class="theme-icon theme-icon-sun" viewBox="0 0 16 16" width="14" height="14" shape-rendering="crispEdges" aria-hidden="true">
+        <g fill="currentColor">
+          <!-- center disc -->
+          <rect x="6" y="5" width="4" height="1"/>
+          <rect x="5" y="6" width="6" height="4"/>
+          <rect x="6" y="10" width="4" height="1"/>
+          <!-- rays -->
+          <rect x="7" y="1" width="2" height="2"/>
+          <rect x="7" y="13" width="2" height="2"/>
+          <rect x="1" y="7" width="2" height="2"/>
+          <rect x="13" y="7" width="2" height="2"/>
+          <rect x="2" y="2" width="2" height="2"/>
+          <rect x="12" y="2" width="2" height="2"/>
+          <rect x="2" y="12" width="2" height="2"/>
+          <rect x="12" y="12" width="2" height="2"/>
+        </g>
+      </svg>
+      <!-- Moon crescent (shown in LIGHT mode → click switches to dark) -->
+      <svg class="theme-icon theme-icon-moon" viewBox="0 0 16 16" width="14" height="14" shape-rendering="crispEdges" aria-hidden="true">
+        <g fill="currentColor">
+          <rect x="6" y="2" width="4" height="1"/>
+          <rect x="4" y="3" width="4" height="1"/>
+          <rect x="3" y="4" width="3" height="2"/>
+          <rect x="2" y="6" width="3" height="4"/>
+          <rect x="3" y="10" width="3" height="2"/>
+          <rect x="4" y="12" width="4" height="1"/>
+          <rect x="6" y="13" width="4" height="1"/>
+        </g>
+      </svg>
+    </button>
+
+    <div class="menu-clock" id="menuClock">--:--</div>
+  </div>
+
+  <!-- Menu dropdowns -->
+  <div class="menu-dropdown" id="menu-apple" data-menu-for="apple" hidden>
+    <div class="menu-option" data-action="about">About This Macintosh…</div>
+    <div class="menu-separator"></div>
+    <div class="menu-option menu-option-disabled">Calculator</div>
+    <div class="menu-option menu-option-disabled">Chooser</div>
+    <div class="menu-option menu-option-disabled">Control Panel</div>
+  </div>
+
+  <div class="menu-dropdown" id="menu-file" data-menu-for="file" hidden>
+    <div class="menu-option" data-action="new"><span>New Address</span><span class="menu-shortcut">⌘N</span></div>
+    <div class="menu-option" data-action="generate"><span>Generate</span><span class="menu-shortcut">⌘G</span></div>
+    <div class="menu-separator"></div>
+    <div class="menu-option" data-action="copy-all"><span>Copy All</span><span class="menu-shortcut">⌘⇧C</span></div>
+    <div class="menu-separator"></div>
+    <div class="menu-option" data-action="clear">Clear</div>
+    <div class="menu-option menu-option-disabled"><span>Quit</span><span class="menu-shortcut">⌘Q</span></div>
+  </div>
+
+  <div class="menu-dropdown" id="menu-edit" data-menu-for="edit" hidden>
+    <div class="menu-option menu-option-disabled"><span>Undo</span><span class="menu-shortcut">⌘Z</span></div>
+    <div class="menu-separator"></div>
+    <div class="menu-option menu-option-disabled"><span>Cut</span><span class="menu-shortcut">⌘X</span></div>
+    <div class="menu-option" data-action="copy-all"><span>Copy</span><span class="menu-shortcut">⌘C</span></div>
+    <div class="menu-option menu-option-disabled"><span>Paste</span><span class="menu-shortcut">⌘V</span></div>
+    <div class="menu-separator"></div>
+    <div class="menu-option" data-action="select-all"><span>Select All</span><span class="menu-shortcut">⌘A</span></div>
+  </div>
+
+  <div class="menu-dropdown" id="menu-view" data-menu-for="view" hidden>
+    <div class="menu-option" data-action="toggle-readme">Show ReadMe Window</div>
+    <div class="menu-separator"></div>
+    <div class="menu-option" data-action="reset-windows">Clean Up Windows</div>
+    <div class="menu-separator"></div>
+    <div class="menu-section-label">Appearance</div>
+    <div class="menu-option" data-action="theme-light"><span class="menu-check" data-theme-check="light">✓</span><span>Light</span></div>
+    <div class="menu-option" data-action="theme-dark"><span class="menu-check" data-theme-check="dark">✓</span><span>Dark</span></div>
+    <div class="menu-option" data-action="theme-auto"><span class="menu-check" data-theme-check="auto">✓</span><span>Auto (System)</span></div>
+  </div>
+
+  <div class="menu-dropdown" id="menu-special" data-menu-for="special" hidden>
+    <div class="menu-option" data-action="empty-trash">Empty Trash…</div>
+    <div class="menu-separator"></div>
+    <div class="menu-option" data-action="restart">Restart</div>
+    <div class="menu-option menu-option-disabled">Shut Down</div>
+  </div>
+
+  <div class="menu-dropdown" id="menu-help" data-menu-for="help" hidden>
+    <div class="menu-option" data-action="about">About This App</div>
+    <div class="menu-option" data-action="help">Help</div>
+  </div>
+
+  <!-- ============================================================
+       BANNER HEADER — icon + ASCII title + subtitle (sits BELOW menu bar)
+       ============================================================ -->
+  <header class="banner" role="banner" aria-label="Billing Generator">
+    <div class="banner-inner">
+      <div class="scan-bar" aria-hidden="true"></div>
+
+      <!-- Terminal prompt line -->
+      <div class="banner-prompt" aria-hidden="true">
+        <span class="prompt-bracket">[</span><span class="prompt-user">user</span><span class="prompt-at">@</span><span class="prompt-host">billing</span> <span class="prompt-path">~/gen</span><span class="prompt-bracket">]</span><span class="prompt-marker">$</span> <span class="prompt-cmd">./generate-address</span> <span class="prompt-flag">--country</span>=<span class="prompt-arg">*</span> <span class="prompt-flag">--count</span>=<span class="prompt-arg">1</span><span class="prompt-cursor"> </span>
+      </div>
+
+      <!-- Top frame line -->
+      <div class="banner-frame banner-frame-top" aria-hidden="true">
+        <span class="frame-corner">┌</span><span class="frame-line"></span><span class="frame-corner">┐</span>
+      </div>
+
+      <!-- Main banner content: large CRT icon + ASCII art title side by side -->
+      <div class="banner-content">
+
+        <!-- Large pixel CRT icon (matches brand-logo design, scaled up) -->
+        <div class="banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 14 14" shape-rendering="crispEdges">
+            <g fill="currentColor">
+              <!-- CRT monitor outer frame -->
+              <rect x="1" y="1" width="12" height="1"/>
+              <rect x="0" y="2" width="1" height="7"/>
+              <rect x="13" y="2" width="1" height="7"/>
+              <rect x="1" y="9" width="12" height="1"/>
+              <!-- > arrow (prompt symbol) inside screen -->
+              <rect x="2" y="3" width="1" height="1"/>
+              <rect x="2" y="4" width="2" height="1"/>
+              <rect x="3" y="5" width="2" height="1"/>
+              <rect x="2" y="6" width="2" height="1"/>
+              <rect x="2" y="7" width="1" height="1"/>
+              <!-- _ blinking cursor underscore -->
+              <rect x="9" y="5" width="3" height="1" class="banner-icon-cursor"/>
+              <!-- Stand neck -->
+              <rect x="4" y="10" width="6" height="1"/>
+              <!-- Stand base -->
+              <rect x="3" y="11" width="8" height="1"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- ASCII text-art title — pagga 3-row clean style (no shade dots).
+             JS replaces this with span-wrapped chars and runs a Matrix-style
+             decode/scramble animation, then settles to the final text. -->
+        <h1 class="banner-title-wrap">
+          <span class="visually-hidden">BILLING GENERATOR</span>
+          <pre class="banner-ascii" id="bannerAscii" aria-hidden="true"> █▀▄ ▀█▀ █   █   ▀█▀ █▀█ █▀▀   █▀▀ █▀▀ █▀█ █▀▀ █▀▄ █▀█ ▀█▀ █▀█ █▀▄
+ █▀▄  █  █   █    █  █ █ █ █   █ █ █▀▀ █ █ █▀▀ █▀▄ █▀█  █  █ █ █▀▄
+ ▀▀  ▀▀▀ ▀▀▀ ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀   ▀▀▀ ▀▀▀ ▀ ▀ ▀▀▀ ▀ ▀ ▀ ▀  ▀  ▀▀▀ ▀ ▀</pre>
+        </h1>
+
+      </div>
+
+      <!-- Bottom frame line -->
+      <div class="banner-frame banner-frame-bot" aria-hidden="true">
+        <span class="frame-corner">└</span><span class="frame-line"></span><span class="frame-corner">┘</span>
+      </div>
+
+      <!-- Subtitle -->
+      <div class="banner-subtitle" aria-hidden="true">
+        <span class="caret">▸</span>
+        <span class="subtitle-text">FICTIONAL BILLING ADDRESS GENERATOR</span>
+        <span class="subtitle-divider">::</span>
+        <span class="subtitle-meta">v1.0 · TERMINAL EDITION</span>
+        <span class="subtitle-divider">::</span>
+        <span class="subtitle-status">SYS<span class="blink">_</span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       DESKTOP
+       ============================================================ -->
+  <main class="desktop">
+
+    <section class="mac-window mac-window-anim" id="mainWindow" aria-labelledby="winTitle">
+      <header class="title-bar" data-draggable="mainWindow">
+        <button class="close-box" aria-label="Close" type="button" data-window="mainWindow"></button>
+        <div class="title-bar-stripes" aria-hidden="true"></div>
+        <h1 class="title-bar-text" id="winTitle">Billing Address Generator</h1>
+        <div class="title-bar-stripes" aria-hidden="true"></div>
+        <button class="zoom-box" aria-label="Zoom" type="button" data-window="mainWindow"></button>
+      </header>
+
+      <div class="window-body">
+
+        <div class="form-row">
+          <label class="field-label" for="countrySelect">Country:</label>
+          <div class="select-wrapper">
+            <select id="countrySelect" class="mac-select" aria-label="Select country"></select>
+          </div>
+          <button id="generateBtn" type="button" class="mac-button mac-button-default">Generate</button>
+        </div>
+
+        <hr class="mac-divider" />
+
+        <form id="addressForm" autocomplete="off" novalidate>
+          <div class="form-row">
+            <label class="field-label" for="cardholderName">Cardholder Name:</label>
+            <input type="text" id="cardholderName" class="mac-input" readonly />
+            <button type="button" class="copy-btn" data-copy="cardholderName" aria-label="Copy cardholder name">⧉</button>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="addressLine1">Address Line 1:</label>
+            <input type="text" id="addressLine1" class="mac-input" readonly />
+            <button type="button" class="copy-btn" data-copy="addressLine1" aria-label="Copy address line 1">⧉</button>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="addressLine2">Address Line 2:</label>
+            <input type="text" id="addressLine2" class="mac-input" readonly placeholder="(optional)" />
+            <button type="button" class="copy-btn" data-copy="addressLine2" aria-label="Copy address line 2">⧉</button>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="city">City:</label>
+            <input type="text" id="city" class="mac-input" readonly />
+            <button type="button" class="copy-btn" data-copy="city" aria-label="Copy city">⧉</button>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="region">Region / State / Province:</label>
+            <input type="text" id="region" class="mac-input" readonly />
+            <button type="button" class="copy-btn" data-copy="region" aria-label="Copy region">⧉</button>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="postalCode">Postal / ZIP Code:</label>
+            <input type="text" id="postalCode" class="mac-input mac-input-short" readonly />
+            <button type="button" class="copy-btn" data-copy="postalCode" aria-label="Copy postal code">⧉</button>
+          </div>
+
+          <div class="form-row">
+            <label class="field-label" for="phoneNumber">Phone Number:</label>
+            <input type="text" id="phoneNumber" class="mac-input" readonly />
+            <button type="button" class="copy-btn" data-copy="phoneNumber" aria-label="Copy phone number">⧉</button>
+          </div>
+        </form>
+
+        <hr class="mac-divider" />
+
+        <div class="actions-row">
+          <button id="copyAllBtn" type="button" class="mac-button">Copy All</button>
+          <button id="clearBtn" type="button" class="mac-button">Clear</button>
+          <span class="status-text" id="statusText" role="status" aria-live="polite"></span>
+        </div>
+
+      </div>
+
+      <footer class="resize-bar" aria-hidden="true">
+        <div class="resize-grip"></div>
+      </footer>
+    </section>
+
+    <aside class="mac-window mac-window-note mac-window-anim" id="readmeWindow" aria-labelledby="noteTitle">
+      <header class="title-bar title-bar-inactive" data-draggable="readmeWindow">
+        <button class="close-box" aria-label="Close" type="button" data-window="readmeWindow"></button>
+        <div class="title-bar-stripes" aria-hidden="true"></div>
+        <h2 class="title-bar-text" id="noteTitle">ReadMe</h2>
+        <div class="title-bar-stripes" aria-hidden="true"></div>
+      </header>
+      <div class="window-body window-body-note">
+        <p><strong>About this tool</strong></p>
+        <p>This generator produces <em>fictional</em> billing addresses for software testing, form QA, and UI mockups.</p>
+        <ul>
+          <li>Pick a country, then click <kbd>Generate</kbd>.</li>
+          <li>Click <kbd>⧉</kbd> next to a field to copy it.</li>
+          <li>Use <kbd>Copy All</kbd> to copy the full address.</li>
+          <li>Drag any window by its title bar.</li>
+        </ul>
+        <p class="warn">⚠ Do <strong>not</strong> use generated data for fraud, identity misuse, or payment systems. For testing purposes only.</p>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ============================================================
+       DESKTOP TRASH ICON
+       ============================================================ -->
+  <div class="desktop-icon trash-icon" id="trashIcon" tabindex="0" role="button" aria-label="Trash">
+    <div class="trash-can" aria-hidden="true">
+      <svg viewBox="0 0 32 36" width="32" height="36" shape-rendering="crispEdges">
+        <g fill="#000">
+          <!-- handle -->
+          <rect x="11" y="0" width="10" height="2"/>
+          <rect x="9" y="2" width="14" height="1"/>
+          <!-- lid -->
+          <rect x="4" y="3" width="24" height="2"/>
+          <rect x="4" y="5" width="1" height="1"/>
+          <rect x="27" y="5" width="1" height="1"/>
+          <!-- body outline -->
+          <rect x="6" y="6" width="1" height="29"/>
+          <rect x="25" y="6" width="1" height="29"/>
+          <rect x="6" y="35" width="20" height="1"/>
+          <!-- vertical lines (slats) -->
+          <rect x="10" y="8" width="1" height="25"/>
+          <rect x="14" y="8" width="1" height="25"/>
+          <rect x="18" y="8" width="1" height="25"/>
+          <rect x="22" y="8" width="1" height="25"/>
+        </g>
+      </svg>
+    </div>
+    <span class="icon-label">Trash</span>
+  </div>
+
+  <!-- ============================================================
+       ABOUT DIALOG (modal) — accessible via Apple menu
+       ============================================================ -->
+  <div class="modal-backdrop" id="aboutBackdrop" hidden>
+    <div class="mac-dialog" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <div class="dialog-content">
+        <div class="dialog-icon" aria-hidden="true">
+          <svg viewBox="0 0 64 80" width="64" height="80" shape-rendering="crispEdges">
+            <rect x="4" y="2" width="56" height="68" fill="#fff" stroke="#000" stroke-width="2"/>
+            <rect x="10" y="8" width="44" height="32" fill="#fff" stroke="#000" stroke-width="2"/>
+            <g fill="#000">
+              <rect x="20" y="18" width="3" height="3"/>
+              <rect x="41" y="18" width="3" height="3"/>
+              <rect x="31" y="24" width="2" height="3"/>
+              <rect x="22" y="29" width="2" height="2"/>
+              <rect x="24" y="31" width="16" height="2"/>
+              <rect x="40" y="29" width="2" height="2"/>
+              <rect x="14" y="44" width="36" height="1"/>
+              <rect x="14" y="46" width="36" height="1"/>
+              <rect x="14" y="48" width="36" height="1"/>
+            </g>
+            <rect x="18" y="54" width="28" height="2" fill="#000"/>
+            <rect x="2" y="70" width="60" height="6" fill="#fff" stroke="#000" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="dialog-text">
+          <h2 id="aboutTitle">Billing Address Generator</h2>
+          <p class="dialog-version">Version 1.0 · Macintosh Edition</p>
+          <p class="dialog-tagline">A fictional address generator for testing and UI mockups.</p>
+          <p class="dialog-credit">© 2026 · Built with vanilla HTML, CSS &amp; JS.</p>
+          <p class="dialog-credit"><strong>Total memory:</strong> 1,024 K · <strong>Largest unused block:</strong> 768 K</p>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="mac-button mac-button-default" id="aboutOkBtn" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ALERT DIALOG (generic, used by menu actions)
+       ============================================================ -->
+  <div class="modal-backdrop" id="alertBackdrop" hidden>
+    <div class="mac-dialog mac-dialog-alert" role="alertdialog" aria-modal="true" aria-labelledby="alertTitle" aria-describedby="alertMsg">
+      <div class="dialog-content">
+        <div class="dialog-icon dialog-icon-warn" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="48" height="48" shape-rendering="crispEdges">
+            <g fill="#000">
+              <rect x="14" y="2" width="4" height="2"/>
+              <rect x="12" y="4" width="8" height="2"/>
+              <rect x="10" y="6" width="12" height="2"/>
+              <rect x="8" y="8" width="16" height="2"/>
+              <rect x="6" y="10" width="20" height="2"/>
+              <rect x="4" y="12" width="24" height="2"/>
+              <rect x="2" y="14" width="28" height="14"/>
+              <rect x="0" y="28" width="32" height="2"/>
+            </g>
+            <g fill="#fff">
+              <rect x="15" y="10" width="2" height="10"/>
+              <rect x="15" y="22" width="2" height="2"/>
+            </g>
+          </svg>
+        </div>
+        <div class="dialog-text">
+          <h3 id="alertTitle">Notice</h3>
+          <p id="alertMsg">—</p>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="mac-button mac-button-default" id="alertOkBtn" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

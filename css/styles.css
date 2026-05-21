@@ -1,0 +1,2258 @@
+/* ============================================================
+ * styles.css — Macintosh System 7 / Mac OS Classic UI
+ *
+ * Sections:
+ *   1. Reset & base
+ *   2. Custom pixel cursor
+ *   3. Boot splash (happy mac welcome)
+ *   4. Top menu bar + dropdowns
+ *   5. Desktop & windows
+ *   6. Title bar (striped + close/zoom box)
+ *   7. Form fields, selects, buttons
+ *   8. Trash icon (desktop)
+ *   9. Modal dialogs (About, Alert)
+ *  10. Beach ball spinner
+ *  11. Drag outline
+ *  12. Animations & keyframes
+ *  13. Responsive
+ * ============================================================ */
+
+
+/* ============================================================
+ * 0. Theme tokens — light (default) and dark
+ *    Dark mode is modelled after the Mac OS 8/9 "Drawing Board"
+ *    theme: inverted ink/paper, kept beveled chrome.
+ * ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* Fonts (terminal + retro display) */
+  --font-mono: "VT323", "IBM Plex Mono", "Source Code Pro", "Menlo",
+    "Consolas", "Courier New", monospace;
+  --font-display: "Press Start 2P", "VT323", "Courier New", monospace;
+  --font-ui: "VT323", "Geneva", "Chicago", "Lucida Grande", monospace;
+
+  /* Light mode — paper-terminal (sepia/amber on cream) */
+  --ink:        #1a1208;     /* dark sepia text */
+  --paper:      #f3ecd6;     /* cream paper bg */
+  --paper-2:    #e8dcb0;     /* hover */
+  --paper-3:    #d4c08a;     /* pressed */
+
+  --mid:        #c8b574;     /* desktop dimmed amber */
+  --mid-light:  #b8a560;     /* light dots, bevel-light */
+  --mid-dark:   #6b5530;     /* dark dots, button active */
+  --text-dim:   #5a4525;
+
+  /* Drop shadows (warm sepia tint) */
+  --shadow-25:  rgba(40, 24, 8, 0.25);
+  --shadow-30:  rgba(40, 24, 8, 0.30);
+  --shadow-35:  rgba(40, 24, 8, 0.35);
+  --shadow-40:  rgba(40, 24, 8, 0.40);
+
+  --error:      #a82800;     /* rust red */
+
+  /* Phosphor accent (amber CRT vibe) */
+  --accent:        #d05010;
+  --accent-2:      #ff7a30;
+  --accent-glow:   rgba(208, 80, 16, 0.45);
+  --accent-glow-2: rgba(208, 80, 16, 0.20);
+
+  /* Glitch RGB-split layers */
+  --glitch-r:   #ff003c;
+  --glitch-g:   #00fff0;
+  --glitch-b:   #ffea00;
+
+  /* CRT scanline opacity */
+  --scan-opacity: 0.06;
+
+  /* Theme-specific assets (overridden in dark) */
+  --cursor-arrow: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges' viewBox='0 0 16 16'><path fill='black' d='M1 1h1v14h-1zM2 2h1v12h-1zM3 3h1v10h-1zM4 4h1v8h-1zM5 5h1v6h-1zM6 6h1v4h-1zM7 7h1v2h-1zM2 13h2v1h-2zM4 11h1v2h-1zM5 10h1v1h-1zM6 11h2v3h-2zM8 11h1v3h-1zM9 12h1v2h-1z'/><path fill='white' d='M2 2v12h1v-1h2v1h1v-3h2v3h1v-3h1v-1h-2v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1z'/></svg>");
+
+  --svg-invert: 0;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Dark mode — CRT phosphor green on deep black */
+  --ink:        #5cff7c;     /* phosphor green */
+  --paper:      #021a08;     /* deep green-black */
+  --paper-2:    #052a10;
+  --paper-3:    #0a3a18;
+
+  --mid:        #051508;     /* desktop near-black */
+  --mid-light:  #1a3a22;
+  --mid-dark:   #2a5a32;
+  --text-dim:   #7acc8a;
+
+  --shadow-25:  rgba(92, 255, 124, 0.18);
+  --shadow-30:  rgba(92, 255, 124, 0.22);
+  --shadow-35:  rgba(92, 255, 124, 0.20);
+  --shadow-40:  rgba(92, 255, 124, 0.30);
+
+  --error:      #ff5577;
+
+  /* Brighter phosphor accent */
+  --accent:        #88ffaa;
+  --accent-2:      #aaffcc;
+  --accent-glow:   rgba(92, 255, 124, 0.55);
+  --accent-glow-2: rgba(92, 255, 124, 0.25);
+
+  /* Heavier scanlines on dark CRT */
+  --scan-opacity: 0.14;
+
+  --cursor-arrow: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges' viewBox='0 0 16 16'><path fill='%235cff7c' d='M1 1h1v14h-1zM2 2h1v12h-1zM3 3h1v10h-1zM4 4h1v8h-1zM5 5h1v6h-1zM6 6h1v4h-1zM7 7h1v2h-1zM2 13h2v1h-2zM4 11h1v2h-1zM5 10h1v1h-1zM6 11h2v3h-2zM8 11h1v3h-1zM9 12h1v2h-1z'/><path fill='black' d='M2 2v12h1v-1h2v1h1v-3h2v3h1v-3h1v-1h-2v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1h-1v-1z'/></svg>");
+
+  --svg-invert: 1;
+}
+
+
+/* ============================================================
+ * 1. Reset & base
+ * ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+  background-color: var(--mid);
+  /* Stippled desktop pattern (classic 50% gray dither) */
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--mid-light) 1px, transparent 1px),
+    radial-gradient(circle at 1px 1px, var(--mid-dark) 1px, transparent 1px);
+  background-size: 4px 4px, 4px 4px;
+  background-position: 0 0, 2px 2px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  text-rendering: geometricPrecision;
+
+  /* Smooth theme switch (only colors, not all properties — animations stay snappy) */
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* Apply theme transition to all surfaces & strokes */
+.menu-bar,
+.menu-dropdown,
+.mac-window,
+.title-bar,
+.title-bar-text,
+.window-body,
+.mac-input,
+.mac-select,
+.mac-button,
+.copy-btn,
+.close-box,
+.zoom-box,
+.mac-divider,
+.resize-bar,
+.resize-grip,
+.icon-label,
+.mac-dialog,
+.beach-ball-inner,
+.boot-splash,
+.boot-progress {
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    outline-color 0.25s ease;
+}
+
+/* Invert hardcoded black/white SVGs (happy mac, apple logo, trash, bomb)
+   in dark mode so they remain visible. Light mode = filter: invert(0). */
+.trash-can svg,
+.dialog-icon svg {
+  filter: invert(var(--svg-invert));
+  transition: filter 0.25s ease;
+}
+
+/* Brand logo (custom CRT prompt icon) uses currentColor — no invert needed,
+   it just inherits the menu text color, including the inverted state when
+   the Apple/Brand menu is open. */
+.brand-logo svg {
+  display: block;
+  /* Subtle phosphor glow that follows the theme accent */
+  filter: drop-shadow(0 0 2px var(--accent-glow-2));
+  transition: filter 0.25s ease, transform 0.15s ease;
+}
+
+.menu-trigger:hover .brand-logo svg {
+  filter: drop-shadow(0 0 4px var(--accent-glow));
+  transform: scale(1.05);
+}
+
+/* Blinking cursor inside the brand logo */
+.brand-logo-cursor {
+  animation: blinkCaret 1.05s steps(2) infinite;
+  transform-origin: center;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+
+/* ============================================================
+ * 2. Custom pixel cursor (classic Mac arrow)
+ * 32x32 SVG arrow encoded inline
+ * ============================================================ */
+
+body,
+html {
+  cursor: var(--cursor-arrow) 1 1, default;
+}
+
+a,
+button,
+.menu-trigger,
+.menu-option,
+.copy-btn,
+.close-box,
+.zoom-box,
+.desktop-icon,
+.mac-button,
+[role="button"] {
+  cursor: pointer;
+}
+
+.title-bar {
+  cursor: grab;
+}
+
+.title-bar:active {
+  cursor: grabbing;
+}
+
+
+/* ============================================================
+ * 3. Boot splash — "INITIALIZING TERMINAL…"
+ *    Standalone first-page that fully covers the landing.
+ *    Shows: CRT icon + message + boot log + progress bar.
+ *    Dismisses with a CRT turn-off transition.
+ * ============================================================ */
+
+.boot-splash {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+  /* Subtle scanline texture inside boot screen */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 3px
+  );
+  animation: bootFadeIn 0.2s ease-out;
+}
+
+[data-theme="dark"] .boot-splash {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    rgba(255, 255, 255, 0.04) 2px,
+    rgba(255, 255, 255, 0.04) 3px
+  );
+}
+
+/* Classic CRT turn-off — collapses vertically then horizontally to a dot */
+.boot-splash.is-leaving {
+  animation: crtTurnOff 0.7s cubic-bezier(0.5, 0, 0.7, 1) forwards;
+}
+
+.boot-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.boot-crt {
+  color: var(--ink);
+  filter: drop-shadow(0 0 8px var(--accent-glow))
+          drop-shadow(0 0 24px var(--accent-glow-2));
+  animation: bootBob 1.6s ease-in-out infinite alternate;
+}
+
+.boot-crt svg {
+  display: block;
+}
+
+.boot-crt-cursor {
+  animation: blinkCaret 1.05s steps(2) infinite;
+}
+
+.boot-message {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-shadow:
+    0 0 6px var(--accent-glow),
+    0 0 14px var(--accent-glow-2);
+  animation: blinkCaret 1.5s steps(2) infinite;
+}
+
+/* ---- Terminal boot log ---- */
+.boot-log {
+  width: 100%;
+  max-width: 460px;
+  min-height: 132px;
+  margin: 4px 0;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid var(--ink);
+  box-shadow: 0 0 6px var(--accent-glow-2);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  white-space: pre-wrap;
+  color: var(--text-dim);
+  overflow: hidden;
+  position: relative;
+}
+
+.boot-log-line {
+  display: block;
+  opacity: 0;
+  transform: translateX(-8px);
+  animation: bootLineIn 0.18s ease-out forwards;
+}
+
+@keyframes bootLineIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.boot-log-line .log-tag {
+  display: inline-block;
+  width: 7ch;
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.boot-log-line .log-msg {
+  color: var(--ink);
+}
+
+.boot-log-line .log-ok {
+  float: right;
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.boot-log-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  margin-left: 2px;
+  animation: blinkCaret 0.8s steps(2) infinite;
+}
+
+/* ---- Progress bar ---- */
+.boot-progress {
+  width: 240px;
+  height: 12px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+.boot-progress-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--ink) 0 4px,
+    transparent 4px 8px
+  );
+  animation: bootProgress 2.6s ease-out forwards;
+}
+
+.boot-footer {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+
+/* ---- Landing-cloak: hide landing animations during boot ---- */
+body.is-booting .banner-ascii,
+body.is-booting .ascii-noise,
+body.is-booting .scan-bar {
+  visibility: hidden;
+}
+
+body:not(.is-booting) .banner-ascii,
+body:not(.is-booting) .ascii-noise {
+  animation-fill-mode: both;
+}
+
+/* Smooth fade-in for landing main content once boot dismisses */
+.banner,
+.menu-bar,
+.desktop {
+  animation: none;
+}
+
+body:not(.is-booting) .menu-bar,
+body:not(.is-booting) .banner,
+body:not(.is-booting) .desktop {
+  animation: landingFadeIn 0.5s ease-out;
+}
+
+@keyframes landingFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ============================================================
+ * 4. Top menu bar + dropdowns
+ * ============================================================ */
+
+.menu-bar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: 22px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--ink);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.menu-trigger {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 12px;
+  user-select: none;
+  position: relative;
+  outline: none;
+}
+
+.menu-trigger:focus-visible,
+.menu-trigger.is-open {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.menu-trigger.is-open .brand-logo svg path,
+.menu-trigger.is-open .brand-logo svg rect {
+  fill: var(--paper);
+}
+
+.menu-bold {
+  font-weight: bold;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  /* Inherits color from .menu-trigger so currentColor works */
+  color: var(--ink);
+}
+
+.menu-trigger.is-open .brand-logo {
+  color: var(--paper);
+}
+
+.menu-clock {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+/* Theme toggle button (sits between Help menu and clock) */
+.theme-toggle {
+  margin-left: auto;
+  margin-right: 6px;
+  width: 22px;
+  height: 16px;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  /* Classic Mac bevel */
+  box-shadow:
+    inset 1px 1px 0 var(--paper),
+    inset -1px -1px 0 var(--mid-light);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.05s ease,
+    box-shadow 0.15s ease;
+}
+
+.theme-toggle + .menu-clock {
+  margin-left: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--paper-2);
+}
+
+.theme-toggle:active,
+.theme-toggle.is-pressing {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset 1px 1px 0 var(--mid-dark),
+    inset -1px -1px 0 var(--mid-light);
+}
+
+.theme-toggle:focus-visible {
+  outline: 1px dashed var(--ink);
+  outline-offset: 1px;
+}
+
+/* Icon visibility — show the *destination* icon */
+.theme-toggle .theme-icon {
+  display: none;
+}
+
+[data-theme="light"] .theme-toggle .theme-icon-moon {
+  display: block;
+  animation: themeIconIn 0.25s ease-out;
+}
+
+[data-theme="dark"] .theme-toggle .theme-icon-sun {
+  display: block;
+  animation: themeIconIn 0.25s ease-out;
+}
+
+/* Sun spin on hover (subtle) */
+.theme-toggle:hover .theme-icon-sun {
+  animation: themeIconSpin 6s linear infinite;
+}
+
+/* Theme icon entrance */
+@keyframes themeIconIn {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes themeIconSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dropdown panel */
+.menu-dropdown {
+  position: fixed;
+  top: 22px;
+  z-index: 199;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--shadow-40);
+  min-width: 200px;
+  padding: 2px 0;
+  animation: menuOpen 0.08s ease-out;
+}
+
+.menu-option {
+  padding: 3px 16px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.menu-option:hover:not(.menu-option-disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.menu-option-disabled {
+  color: var(--mid);
+  cursor: default;
+}
+
+.menu-shortcut {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-option:hover:not(.menu-option-disabled) .menu-shortcut {
+  color: var(--paper);
+}
+
+.menu-separator {
+  height: 0;
+  border-top: 1px solid var(--ink);
+  margin: 3px 4px;
+}
+
+/* Section label (italic, non-clickable) for grouping in menus */
+.menu-section-label {
+  padding: 2px 16px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+/* Checkmark column inside menu options (theme indicators, etc.) */
+.menu-option {
+  position: relative;
+}
+
+.menu-check {
+  display: inline-block;
+  width: 12px;
+  margin-right: 4px;
+  text-align: center;
+  visibility: hidden;
+}
+
+.menu-check.is-checked {
+  visibility: visible;
+}
+
+
+/* ============================================================
+ * 5. Desktop & windows
+ * ============================================================ */
+
+.desktop {
+  position: relative;
+  padding: 32px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: stretch;
+  min-height: calc(100vh - 22px);
+}
+
+.mac-window {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow:
+    1px 1px 0 var(--ink),
+    2px 2px 0 var(--ink),
+    3px 3px 0 var(--shadow-25);
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  transform-origin: center center;
+}
+
+.mac-window-note {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Open animation: zoom-rect from small to full */
+.mac-window-anim {
+  animation: windowOpen 0.28s cubic-bezier(0.2, 0.8, 0.4, 1.2);
+}
+
+.mac-window.is-closing {
+  animation: windowClose 0.22s ease-in forwards;
+}
+
+.mac-window.is-zoomed {
+  width: min(720px, 95vw);
+}
+
+
+/* ============================================================
+ * 6. Title bar
+ * ============================================================ */
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  height: 19px;
+  border-bottom: 1px solid var(--ink);
+  background: var(--paper);
+  padding: 0 4px;
+  gap: 6px;
+  user-select: none;
+}
+
+.title-bar-stripes {
+  flex: 1;
+  height: 11px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--ink) 0,
+    var(--ink) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+}
+
+.title-bar-text {
+  margin: 0;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: bold;
+  background: var(--paper);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.title-bar-inactive .title-bar-stripes {
+  background-image: none;
+  background: var(--paper);
+}
+
+.title-bar-inactive .title-bar-text {
+  font-weight: normal;
+}
+
+/* Close box */
+.close-box,
+.zoom-box {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  position: relative;
+  outline: none;
+}
+
+.close-box::before,
+.close-box::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+  opacity: 0;
+  transition: opacity 0.05s linear;
+}
+
+.close-box::before {
+  top: 4px;
+  left: 1px;
+  right: 1px;
+  height: 1px;
+}
+
+.close-box::after {
+  left: 4px;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+}
+
+.close-box:hover::before,
+.close-box:hover::after,
+.close-box:focus-visible::before,
+.close-box:focus-visible::after {
+  opacity: 1;
+}
+
+.close-box:active {
+  background: var(--ink);
+}
+
+.close-box:active::before,
+.close-box:active::after {
+  background: var(--paper);
+  opacity: 1;
+}
+
+/* Zoom box (small square inside) */
+.zoom-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 3px;
+  bottom: 3px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+.zoom-box:active {
+  background: var(--paper-3);
+}
+
+
+/* ============================================================
+ * 7. Window body, form rows, inputs, buttons
+ * ============================================================ */
+
+.window-body {
+  padding: 14px 16px;
+  background: var(--paper);
+}
+
+.window-body-note {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.window-body-note p {
+  margin: 0 0 8px;
+}
+
+.window-body-note ul {
+  margin: 0 0 8px 18px;
+  padding: 0;
+}
+
+.window-body-note li {
+  margin-bottom: 3px;
+}
+
+.window-body-note kbd {
+  font-family: "Chicago", "Geneva", monospace;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+.window-body-note .warn {
+  border-top: 1px dashed var(--ink);
+  padding-top: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.field-label {
+  flex: 0 0 168px;
+  text-align: right;
+  font-size: 12px;
+  user-select: none;
+}
+
+/* Inputs */
+.mac-input {
+  flex: 1;
+  height: 20px;
+  padding: 2px 5px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  outline: none;
+  box-shadow: inset 1px 1px 0 var(--mid);
+  color: var(--ink);
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 0.05s linear;
+}
+
+.mac-input::placeholder {
+  color: var(--mid);
+  font-style: italic;
+}
+
+.mac-input:focus {
+  box-shadow:
+    inset 1px 1px 0 var(--mid),
+    0 0 0 2px var(--ink);
+}
+
+.mac-input.is-flash {
+  animation: fieldFlash 0.45s ease-out;
+}
+
+.mac-input.is-selected {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.mac-input-short {
+  flex: 0 0 140px;
+}
+
+/* Select */
+.select-wrapper {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.select-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--ink);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.mac-select {
+  width: 100%;
+  height: 20px;
+  padding: 2px 22px 2px 6px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  outline: none;
+  cursor: pointer;
+  box-shadow:
+    inset 1px 1px 0 var(--paper),
+    inset -1px -1px 0 var(--mid);
+}
+
+.mac-select:focus {
+  box-shadow:
+    inset 1px 1px 0 var(--paper),
+    inset -1px -1px 0 var(--mid),
+    0 0 0 2px var(--ink);
+}
+
+/* Buttons */
+.mac-button {
+  min-width: 70px;
+  height: 22px;
+  padding: 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--ink);
+  position: relative;
+  box-shadow:
+    inset 1px 1px 0 var(--paper),
+    inset -1px -1px 0 var(--mid-light),
+    1px 1px 0 var(--ink);
+  transition: none;
+}
+
+.mac-button:hover:not(:disabled) {
+  background: var(--paper-2);
+}
+
+.mac-button:active:not(:disabled),
+.mac-button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow:
+    inset 1px 1px 0 var(--mid-dark),
+    inset -1px -1px 0 var(--mid-light),
+    0 0 0 var(--ink);
+  transform: translate(1px, 1px);
+}
+
+.mac-button:disabled {
+  color: var(--mid);
+  cursor: not-allowed;
+}
+
+/* Default button: thicker outer ring + pulse */
+.mac-button-default {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  margin-right: 4px;
+  animation: buttonPulse 1.4s ease-in-out infinite;
+}
+
+.mac-button-default:active {
+  animation: none;
+}
+
+.copy-btn {
+  flex: none;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow:
+    inset 1px 1px 0 var(--paper),
+    inset -1px -1px 0 var(--mid-light),
+    1px 1px 0 var(--ink);
+}
+
+.copy-btn:hover {
+  background: var(--paper-2);
+}
+
+.copy-btn:active,
+.copy-btn.is-flash {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset 1px 1px 0 var(--mid-dark),
+    inset -1px -1px 0 var(--mid-light),
+    0 0 0 var(--ink);
+}
+
+.mac-divider {
+  border: 0;
+  border-top: 1px solid var(--ink);
+  margin: 12px 0;
+  height: 0;
+  background: none;
+}
+
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-text {
+  margin-left: auto;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+  min-height: 16px;
+}
+
+/* Resize bar */
+.resize-bar {
+  height: 14px;
+  border-top: 1px solid var(--ink);
+  background: var(--paper);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 2px;
+}
+
+.resize-grip {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ink);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--ink) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+
+/* ============================================================
+ * 8. Trash icon (desktop)
+ * ============================================================ */
+
+.desktop-icon {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 56px;
+  text-align: center;
+  user-select: none;
+  outline: none;
+  z-index: 5;
+}
+
+.desktop-icon:focus-visible .icon-label,
+.desktop-icon.is-selected .icon-label {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.desktop-icon:focus-visible .trash-can,
+.desktop-icon.is-selected .trash-can {
+  filter: invert(1);
+}
+
+.trash-can {
+  width: 32px;
+  height: 36px;
+  margin: 0 auto;
+  position: relative;
+  transition: transform 0.1s ease-out;
+}
+
+.trash-can svg {
+  display: block;
+}
+
+.trash-icon.is-bulged .trash-can {
+  animation: trashBulge 0.45s ease-in-out;
+}
+
+.icon-label {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 0 4px;
+  font-size: 11px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+}
+
+
+/* ============================================================
+ * 9. Modal dialogs (About, Alert)
+ * ============================================================ */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Stippled overlay to match classic dim */
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--shadow-35) 1px, transparent 1px),
+    radial-gradient(circle at 1px 1px, var(--shadow-35) 1px, transparent 1px);
+  background-size: 4px 4px, 4px 4px;
+  background-position: 0 0, 2px 2px;
+  animation: backdropIn 0.15s ease-out;
+}
+
+.mac-dialog {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow:
+    1px 1px 0 var(--ink),
+    2px 2px 0 var(--ink),
+    4px 4px 0 var(--shadow-30);
+  width: 420px;
+  max-width: 92vw;
+  /* Outer shadow rim simulating the doubled border on classic dialogs */
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+  animation: dialogOpen 0.22s cubic-bezier(0.2, 0.8, 0.4, 1.2);
+}
+
+.mac-dialog.is-closing {
+  animation: dialogClose 0.18s ease-in forwards;
+}
+
+.dialog-content {
+  display: flex;
+  gap: 16px;
+  padding: 18px 18px 12px;
+}
+
+.dialog-icon {
+  flex: none;
+}
+
+.dialog-icon svg {
+  display: block;
+}
+
+.dialog-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.dialog-text h2,
+.dialog-text h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.dialog-text p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dialog-version {
+  color: var(--text-dim);
+}
+
+.dialog-tagline {
+  font-style: italic;
+}
+
+.dialog-credit {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 18px 14px;
+}
+
+
+/* ============================================================
+ * 10. Beach ball spinner
+ * ============================================================ */
+
+.beach-ball {
+  position: fixed;
+  z-index: 9000;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  display: none;
+}
+
+.beach-ball.is-active {
+  display: block;
+}
+
+.beach-ball-inner {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+  animation: beachBallSpin 0.55s linear infinite;
+}
+
+.beach-ball-slice {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+}
+
+.slice-1 {
+  background: var(--ink);
+  clip-path: polygon(50% 50%, 100% 50%, 100% 0, 50% 0);
+}
+
+.slice-2 {
+  background: var(--paper);
+  clip-path: polygon(50% 50%, 100% 50%, 100% 100%, 50% 100%);
+}
+
+.slice-3 {
+  background: var(--ink);
+  clip-path: polygon(50% 50%, 0 50%, 0 100%, 50% 100%);
+}
+
+.slice-4 {
+  background: var(--paper);
+  clip-path: polygon(50% 50%, 0 50%, 0 0, 50% 0);
+}
+
+
+/* ============================================================
+ * 11. Drag outline (Mac-style — only outline visible while dragging)
+ * ============================================================ */
+
+.drag-outline {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  border: 1px dashed var(--ink);
+  background: transparent;
+  z-index: 1000;
+  /* Animated marching-ants effect */
+  background-image:
+    repeating-linear-gradient(0deg, var(--ink) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(0deg, var(--ink) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 4px);
+  background-position: 0 0, 100% 0, 0 0, 0 100%;
+  background-size: 1px 100%, 1px 100%, 100% 1px, 100% 1px;
+  background-repeat: no-repeat;
+  animation: marchingAnts 0.35s linear infinite;
+}
+
+.drag-outline.is-active {
+  display: block;
+}
+
+/* Hide the actual window during drag */
+.mac-window.is-dragging {
+  visibility: hidden;
+}
+
+
+/* ============================================================
+ * 12. Animations & keyframes
+ * ============================================================ */
+
+/* Boot */
+@keyframes bootFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes bootFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; visibility: hidden; }
+}
+
+/* Classic CRT power-off: collapse vertically to a thin line, then to a dot, then fade.
+   Works on the .boot-splash element itself. */
+@keyframes crtTurnOff {
+  0% {
+    transform: scale(1, 1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1, 1);
+    opacity: 1;
+    filter: brightness(1.6);
+  }
+  55% {
+    transform: scale(1, 0.012);
+    opacity: 1;
+    filter: brightness(2.4);
+  }
+  85% {
+    transform: scale(0.04, 0.012);
+    opacity: 1;
+    filter: brightness(3);
+  }
+  100% {
+    transform: scale(0, 0);
+    opacity: 0;
+    filter: brightness(0);
+  }
+}
+
+@keyframes bootBob {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-6px); }
+}
+
+@keyframes bootProgress {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* Window open: zoom-rect (scale + translate from small) */
+@keyframes windowOpen {
+  0% {
+    transform: scale(0.05);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes windowClose {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.05);
+    opacity: 0;
+  }
+}
+
+/* Menu dropdown — instant snap */
+@keyframes menuOpen {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Backdrop */
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Dialog */
+@keyframes dialogOpen {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dialogClose {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Default-button pulse (subtle outer ring throb) */
+@keyframes buttonPulse {
+  0%,
+  100% {
+    outline-color: var(--ink);
+    outline-offset: 2px;
+  }
+  50% {
+    outline-color: var(--mid-dark);
+    outline-offset: 3px;
+  }
+}
+
+/* Field flash (when value updates) */
+@keyframes fieldFlash {
+  0%,
+  100% {
+    background: var(--paper);
+  }
+  20% {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  60% {
+    background: var(--paper);
+    color: var(--ink);
+  }
+}
+
+/* Beach ball spin */
+@keyframes beachBallSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Marching ants for drag outline */
+@keyframes marchingAnts {
+  0%   { background-position: 0 0, 100% 0, 0 0, 0 100%; }
+  100% { background-position: 0 4px, 100% -4px, 4px 0, -4px 100%; }
+}
+
+/* Trash bulge when emptying */
+@keyframes trashBulge {
+  0%,
+  100% { transform: scale(1); }
+  40%  { transform: scale(1.2, 0.85); }
+  70%  { transform: scale(0.9, 1.1); }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+
+/* ============================================================
+ * 13. Responsive
+ * ============================================================ */
+
+@media (max-width: 820px) {
+  .desktop {
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 10px 80px;
+  }
+
+  .mac-window,
+  .mac-window-note {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .field-label {
+    flex: 0 0 110px;
+    font-size: 11px;
+  }
+
+  .menu-trigger {
+    padding: 0 5px;
+  }
+}
+
+@media (max-width: 440px) {
+  .form-row {
+    flex-wrap: wrap;
+  }
+
+  .field-label {
+    flex: 1 1 100%;
+    text-align: left;
+    margin-bottom: 2px;
+  }
+
+  .mac-input,
+  .select-wrapper {
+    flex: 1 1 calc(100% - 36px);
+  }
+
+  .desktop-icon {
+    display: none;
+  }
+
+  .menu-clock,
+  .menu-trigger[data-menu="view"],
+  .menu-trigger[data-menu="special"],
+  .menu-trigger[data-menu="help"] {
+    display: none;
+  }
+
+  .mac-dialog {
+    width: 96vw;
+  }
+
+  .dialog-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+
+
+/* ============================================================
+ * 14. Terminal / CRT effects
+ *     Scanlines overlay, phosphor glow, glitch header,
+ *     blinking cursor, and assorted retro flourishes.
+ * ============================================================ */
+
+/* ---- 14.1 CRT scanlines (full-page overlay) ---- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8000;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--scan-opacity)) 0,
+    rgba(0, 0, 0, var(--scan-opacity)) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Subtle CRT vignette + flicker */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8001;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+  animation: crtFlicker 7s steps(60) infinite;
+}
+
+@keyframes crtFlicker {
+  0%, 100% { opacity: 0.9; }
+  3%       { opacity: 0.85; }
+  6%       { opacity: 1; }
+  9%       { opacity: 0.92; }
+  20%      { opacity: 1; }
+  50%      { opacity: 0.95; }
+}
+
+/* ---- 14.2 Phosphor text-shadow glow utilities ---- */
+.title-bar-text,
+.glitch-subtitle,
+.menu-trigger,
+.menu-clock,
+.field-label,
+.dialog-text h2,
+.dialog-text h3 {
+  text-shadow:
+    0 0 1px var(--accent-glow-2),
+    0 0 4px var(--accent-glow-2);
+}
+
+[data-theme="dark"] .title-bar-text,
+[data-theme="dark"] .glitch-subtitle,
+[data-theme="dark"] .menu-trigger,
+[data-theme="dark"] .menu-clock,
+[data-theme="dark"] .field-label,
+[data-theme="dark"] .dialog-text h2,
+[data-theme="dark"] .dialog-text h3,
+[data-theme="dark"] .mac-input,
+[data-theme="dark"] .mac-button,
+[data-theme="dark"] .status-text,
+[data-theme="dark"] .icon-label,
+[data-theme="dark"] .menu-option {
+  text-shadow:
+    0 0 1px var(--accent-glow),
+    0 0 6px var(--accent-glow),
+    0 0 12px var(--accent-glow-2);
+}
+
+/* Mac inputs get monospace value rendering for that terminal-grid feel */
+.mac-input,
+.mac-select {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+/* Up the size of a few small UI labels (VT323 is a pixel font) */
+.field-label,
+.menu-trigger,
+.menu-clock,
+.menu-option,
+.mac-button,
+.copy-btn,
+.title-bar-text,
+.icon-label {
+  font-size: 16px;
+}
+
+.status-text {
+  font-size: 14px;
+  font-style: normal;
+}
+
+.menu-section-label {
+  font-size: 12px;
+}
+
+.window-body-note {
+  font-size: 14px;
+}
+
+.window-body-note kbd {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.boot-message {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.menu-shortcut {
+  font-family: var(--font-mono);
+}
+
+.beach-ball-inner {
+  /* Phosphor outer glow */
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+
+/* ---- 14.3 BANNER HEADER (terminal prompt + framed title) ---- */
+
+/* Background ASCII character-noise layer — sits behind everything */
+.ascii-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1;
+  white-space: pre;
+  color: var(--ink);
+  opacity: 0.07;
+  overflow: hidden;
+  letter-spacing: 0;
+  /* Subtle pulse to feel alive */
+  animation: noisePulse 6s ease-in-out infinite;
+}
+
+[data-theme="dark"] .ascii-noise {
+  opacity: 0.10;
+  color: var(--accent);
+}
+
+@keyframes noisePulse {
+  0%, 100% { opacity: 0.06; }
+  50%      { opacity: 0.10; }
+}
+
+[data-theme="dark"] .ascii-noise {
+  animation-name: noisePulseDark;
+}
+
+@keyframes noisePulseDark {
+  0%, 100% { opacity: 0.08; }
+  50%      { opacity: 0.13; }
+}
+
+/* Make sure all foreground content sits above the noise.
+   IMPORTANT: only set position:relative on elements that don't
+   already have their own positioning. Elements like .boot-splash,
+   .menu-bar (sticky), .beach-ball, .drag-outline, .desktop-icon,
+   .modal-backdrop already have fixed/sticky positions — we must
+   NOT override those, only set z-index. */
+.banner,
+.desktop {
+  position: relative;
+  z-index: 1;
+}
+
+/* z-index only — position is preserved from each element's own rule. */
+.menu-bar      { z-index: 200; }
+.boot-splash   { z-index: 9999; }
+.modal-backdrop{ z-index: 500; }
+.beach-ball    { z-index: 9000; }
+.drag-outline  { z-index: 1000; }
+.desktop-icon  { z-index: 5; }
+
+
+/* ---- Banner shell ---- */
+.banner {
+  position: relative;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+  padding: 22px 18px 18px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: 0 2px 0 var(--ink), 0 4px 0 var(--shadow-30);
+  z-index: 90;
+  /* Subtle inset scanline texture */
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 3px
+    );
+}
+
+.banner-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  z-index: 2;
+}
+
+/* Sweeping scan-bar (kept) */
+.scan-bar {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--accent-glow-2) 48%,
+    var(--accent-glow) 50%,
+    var(--accent-glow-2) 52%,
+    transparent 100%
+  );
+  animation: scanSweep 5s linear infinite;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+@keyframes scanSweep {
+  0%   { transform: translateY(-120%); }
+  100% { transform: translateY(120%); }
+}
+
+
+/* ---- Terminal prompt line ---- */
+.banner-prompt {
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.3vw, 16px);
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+}
+.banner-prompt::-webkit-scrollbar { display: none; }
+
+.banner-prompt .prompt-bracket,
+.banner-prompt .prompt-marker {
+  color: var(--accent);
+}
+
+.banner-prompt .prompt-user,
+.banner-prompt .prompt-host {
+  color: var(--ink);
+  font-weight: bold;
+}
+
+.banner-prompt .prompt-at,
+.banner-prompt .prompt-path {
+  color: var(--text-dim);
+}
+
+.banner-prompt .prompt-cmd {
+  color: var(--ink);
+  font-weight: bold;
+}
+
+.banner-prompt .prompt-flag {
+  color: var(--accent);
+}
+
+.banner-prompt .prompt-arg {
+  color: var(--ink);
+}
+
+.banner-prompt .prompt-cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--ink);
+  vertical-align: text-bottom;
+  margin-left: 4px;
+  animation: blinkCaret 1s steps(2) infinite;
+}
+
+
+/* ---- Frame lines (top/bot) — full-width single-line border ---- */
+.banner-frame {
+  display: flex;
+  align-items: center;
+  justify-content: stretch;
+  width: 100%;
+  max-width: 760px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--accent);
+  line-height: 1;
+  user-select: none;
+}
+
+.banner-frame .frame-corner {
+  flex: none;
+  font-size: 18px;
+  color: var(--accent);
+  text-shadow: 0 0 4px var(--accent-glow);
+}
+
+.banner-frame .frame-line {
+  flex: 1;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent-glow);
+  margin: 0 2px;
+}
+
+
+/* ---- Banner content (icon + ASCII title side by side) ---- */
+.banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2vw, 24px);
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  padding: 4px 0 6px;
+}
+
+/* Big pixel CRT icon — shares design with .brand-logo */
+.banner-icon {
+  flex: none;
+  width: clamp(46px, 6vw, 72px);
+  height: clamp(46px, 6vw, 72px);
+  color: var(--ink);
+  filter: drop-shadow(0 0 6px var(--accent-glow))
+          drop-shadow(0 0 14px var(--accent-glow-2));
+  animation: bannerIconPulse 3s ease-in-out infinite alternate;
+}
+
+.banner-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes bannerIconPulse {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.04); }
+}
+
+/* The blinking _ cursor inside the icon's screen */
+.banner-icon-cursor {
+  animation: blinkCaret 1.05s steps(2) infinite;
+}
+
+/* Title wrapper — holds the ASCII art block */
+.banner-title-wrap {
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Visually-hidden text for accessibility / SEO */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The ASCII art title — pagga 3-row clean half-block style.
+   JS wraps each non-space character in a <span class="ascii-char"> for
+   the Matrix-style decode/scramble reveal animation. */
+.banner-ascii {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  font-family: "JetBrains Mono", "Fira Code", "Source Code Pro",
+    "Menlo", "Consolas", "Courier New", monospace;
+  font-size: clamp(9px, 1.15vw, 16px);
+  line-height: 0.95;
+  letter-spacing: 0;
+  white-space: pre;
+  color: var(--ink);
+  text-shadow:
+    0 0 4px var(--accent-glow),
+    0 0 14px var(--accent-glow-2);
+  /* Continuous gentle pulse + occasional glitch flash */
+  animation:
+    asciiSettle 4s ease-in-out 2.5s infinite alternate,
+    asciiGlitchFlash 7s steps(20) 4s infinite;
+  /* Initial state — subtle dim while decoding kicks in */
+  opacity: 0.95;
+}
+
+/* Each character is a span during/after decode. Letters that are still
+   in their scramble cycle use a slightly de-saturated phosphor look,
+   then snap to full brightness when locked. */
+.ascii-char {
+  display: inline-block;
+  position: relative;
+  transition: color 0.08s linear, text-shadow 0.08s linear;
+  color: var(--accent);
+  text-shadow:
+    0 0 3px var(--accent-glow),
+    0 0 8px var(--accent-glow-2);
+}
+
+.ascii-char.is-locked {
+  color: var(--ink);
+  text-shadow:
+    0 0 4px var(--accent-glow),
+    0 0 14px var(--accent-glow-2);
+  /* Tiny "settle" pulse when each char locks */
+  animation: charLockPop 0.32s ease-out;
+}
+
+@keyframes charLockPop {
+  0%   { transform: scale(1.4); filter: brightness(2); }
+  100% { transform: scale(1);   filter: brightness(1); }
+}
+
+/* Continuous gentle pulse after decode completes */
+@keyframes asciiSettle {
+  0% {
+    text-shadow:
+      0 0 4px var(--accent-glow),
+      0 0 14px var(--accent-glow-2);
+  }
+  100% {
+    text-shadow:
+      0 0 7px var(--accent-glow),
+      0 0 22px var(--accent-glow);
+  }
+}
+
+/* Occasional glitch flash on the ASCII */
+@keyframes asciiGlitchFlash {
+  0%, 93%, 100% {
+    transform: translate(0, 0);
+    filter: none;
+  }
+  94% {
+    transform: translate(-2px, 0);
+    filter:
+      drop-shadow(2px 0 0 var(--glitch-r))
+      drop-shadow(-2px 0 0 var(--glitch-g));
+  }
+  95% {
+    transform: translate(2px, -1px);
+    filter:
+      drop-shadow(-2px 0 0 var(--glitch-r))
+      drop-shadow(2px 0 0 var(--glitch-g));
+  }
+  96% {
+    transform: translate(0, 1px);
+    filter: none;
+  }
+}
+
+/* Slow row-wave: each line gently floats up and down out of phase.
+   3 lines = 3 different wave delays */
+.banner-ascii::before {
+  /* Subtle vertical breath effect on the whole block */
+  content: "";
+}
+
+/* While decoding, parent block has a tiny brightness flicker for that
+   "loading data stream" vibe */
+.banner-ascii.is-decoding {
+  animation:
+    asciiDecodingFlicker 0.2s steps(5) infinite,
+    asciiGlitchFlash 7s steps(20) 4s infinite;
+}
+
+@keyframes asciiDecodingFlicker {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.15); }
+}
+
+
+/* ---- Subtitle line ---- */
+.banner-subtitle {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 1.3vw, 15px);
+  letter-spacing: 1px;
+  color: var(--accent);
+  display: inline-flex;
+  gap: 10px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+.banner-subtitle .caret {
+  color: var(--accent);
+  text-shadow: 0 0 4px var(--accent-glow);
+}
+
+.banner-subtitle .subtitle-divider {
+  opacity: 0.4;
+}
+
+.banner-subtitle .subtitle-meta {
+  color: var(--text-dim);
+}
+
+.banner-subtitle .subtitle-status {
+  color: var(--ink);
+  font-weight: bold;
+}
+
+.banner-subtitle .blink {
+  display: inline-block;
+  width: 0.6ch;
+  animation: blinkCaret 1.05s steps(2) infinite;
+}
+
+
+/* ---- 14.4 Blinking cursor (status bar + others) ---- */
+@keyframes blinkCaret {
+  0%, 50%   { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.status-text:not(:empty)::after {
+  content: "_";
+  display: inline-block;
+  margin-left: 4px;
+  animation: blinkCaret 0.9s steps(2) infinite;
+  color: var(--accent);
+}
+
+
+/* ---- 14.5 Title bar refinements for terminal vibe ---- */
+.title-bar-text {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .glitch::before,
+[data-theme="dark"] .glitch::after {
+  background: var(--paper);
+}
+
+
+/* ---- 14.6 Reduce motion preference ---- */
+@media (prefers-reduced-motion: reduce) {
+  .banner-ascii,
+  .banner-ascii.is-decoding,
+  .ascii-char,
+  .ascii-char.is-locked,
+  .banner-icon,
+  .banner-icon-cursor,
+  .ascii-noise,
+  .scan-bar,
+  body::after {
+    animation: none !important;
+    transform: none !important;
+  }
+  .banner-ascii {
+    clip-path: none;
+    opacity: 1;
+  }
+  .ascii-char {
+    color: var(--ink);
+  }
+}
+
+
+/* ---- 14.7 Responsive header ---- */
+@media (max-width: 760px) {
+  .banner {
+    padding: 14px 8px 10px;
+  }
+  .banner-prompt {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .banner-content {
+    gap: 12px;
+  }
+  .banner-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .banner-ascii {
+    font-size: clamp(6px, 1.6vw, 11px);
+  }
+  .banner-subtitle {
+    font-size: 10px;
+    gap: 6px;
+  }
+  .banner-frame {
+    font-size: 14px;
+  }
+  .ascii-noise {
+    font-size: 12px;
+    opacity: 0.05;
+  }
+}
+
+@media (max-width: 520px) {
+  /* Stack icon above ASCII title on very narrow screens */
+  .banner-content {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .banner-icon {
+    width: 56px;
+    height: 56px;
+  }
+  /* Hide some subtitle parts on tiny screens */
+  .banner-subtitle .subtitle-meta,
+  .banner-subtitle .subtitle-divider:nth-of-type(2) {
+    display: none;
+  }
+  /* ASCII title needs to overflow scroll on tiny screens */
+  .banner-title-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .banner-title-wrap::-webkit-scrollbar {
+    display: none;
+  }
+}
