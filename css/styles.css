@@ -2054,6 +2054,21 @@ body::after {
     0 0 12px var(--accent-glow-2);
 }
 
+/* Dark mode: make Check Live button and status text brighter */
+[data-theme="dark"] .mac-button-live {
+  border-color: #0f0 !important;
+  color: #0f0 !important;
+  text-shadow:
+    0 0 2px #0f0,
+    0 0 8px rgba(0, 255, 0, 0.6);
+}
+[data-theme="dark"] .status-text {
+  color: #8fff9f;
+  text-shadow:
+    0 0 2px rgba(92, 255, 124, 0.5),
+    0 0 6px rgba(92, 255, 124, 0.3);
+}
+
 /* Mac inputs get monospace value rendering for that terminal-grid feel */
 .mac-input,
 .mac-select {
