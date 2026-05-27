@@ -142,7 +142,7 @@
   }
 
   /* ============================================================
-   *  CC DUMMY GENERATOR
+   *  BIN DETECTOR
    * ============================================================ */
   let ccCards = [];
 
@@ -518,7 +518,7 @@
     const ok = await writeClipboard(lines.join("\n"));
     if (ok) {
       flashElement(els.cc.copy);
-      setCcStatus("Copied CC dummy list.");
+      setCcStatus("Copied BIN detector list.");
     } else {
       setCcStatus("Copy failed.", true);
     }
