@@ -52,7 +52,6 @@
       year: $("ccYearInput"),
       cvv: $("ccCvvInput"),
       generate: $("ccGenerateBtn"),
-      check: $("ccCheckBtn"),
       copy: $("ccCopyBtn"),
       clear: $("ccClearBtn"),
       checkLive: $("ccCheckLiveBtn"),
@@ -1311,7 +1310,6 @@
     els.clear.addEventListener("click", clearForm);
     els.copyAll.addEventListener("click", copyAll);
     els.cc.generate.addEventListener("click", generateCcDummy);
-    if (els.cc.check) els.cc.check.addEventListener("click", checkCcList);
     if (els.cc.checkLive) els.cc.checkLive.addEventListener("click", checkLiveCcList);
     els.cc.copy.addEventListener("click", copyCcList);
     els.cc.clear.addEventListener("click", clearCcResults);

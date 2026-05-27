@@ -1199,6 +1199,8 @@ body:not(.is-booting) .desktop {
   border-radius: 4px;
   background: #0a0a0a;
   overflow: hidden;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .cc-output-header {
@@ -1232,6 +1234,8 @@ body:not(.is-booting) .desktop {
   max-height: 220px;
   overflow-y: auto;
   background: #0a0a0a;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .cc-output-line {
