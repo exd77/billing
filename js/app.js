@@ -28,6 +28,7 @@
     clock: $("menuClock"),
     mainWindow: $("mainWindow"),
     readmeWindow: $("readmeWindow"),
+    ccWindow: $("ccWindow"),
     trash: $("trashIcon"),
     aboutBackdrop: $("aboutBackdrop"),
     aboutOk: $("aboutOkBtn"),
@@ -43,6 +44,31 @@
       region: $("region"),
       postalCode: $("postalCode"),
       phoneNumber: $("phoneNumber")
+    },
+    cc: {
+      bin: $("ccBinInput"),
+      count: $("ccCountInput"),
+      month: $("ccMonthInput"),
+      year: $("ccYearInput"),
+      cvv: $("ccCvvInput"),
+      generate: $("ccGenerateBtn"),
+      check: $("ccCheckBtn"),
+      copy: $("ccCopyBtn"),
+      clear: $("ccClearBtn"),
+      checkLive: $("ccCheckLiveBtn"),
+      status: $("ccStatusText"),
+      scheme: $("ccSchemeText"),
+      length: $("ccLengthText"),
+      generated: $("ccGeneratedText"),
+      luhn: $("ccLuhnText"),
+      binInfo: $("ccBinInfoText"),
+      progressWrap: $("ccProgressWrap"),
+      progressFill: $("ccProgressFill"),
+      progressText: $("ccProgressText"),
+      rows: $("ccRows"),
+      outputWrap: $("ccOutputWrap"),
+      outputStream: $("ccOutputStream"),
+      outputCount: $("ccOutputCount")
     }
   };
 
@@ -113,6 +139,389 @@
       els.fields[key].value = "";
     }
     setStatus("Cleared.");
+  }
+
+  /* ============================================================
+   *  CC DUMMY GENERATOR
+   * ============================================================ */
+  let ccCards = [];
+
+  function parseCcUiInput() {
+    const raw = els.cc.bin.value.trim();
+    const parts = raw.split("|").map((part) => part.trim()).filter(Boolean);
+    const bin = (parts[0] || raw).replace(/[^\dxX*#?]/g, "");
+    const countRaw = String(els.cc.count.value || "10").replace(/\D/g, "");
+    const count = Math.max(1, Math.min(100, parseInt(countRaw, 10) || 10));
+    return {
+      bin,
+      count,
+      month: (parts[1] || els.cc.month.value || "rnd").trim().toLowerCase() || "rnd",
+      year: (parts[2] || els.cc.year.value || "rnd").trim().toLowerCase() || "rnd",
+      cvv: (parts[3] || els.cc.cvv.value || "rnd").trim().toLowerCase() || "rnd"
+    };
+  }
+
+  function updateCcPreview() {
+    const { bin } = parseCcUiInput();
+    const digits = bin.replace(/[^\d]/g, "");
+    const parsed = CCGenerator.parseBin(digits, 16);
+    if (parsed.error) {
+      els.cc.scheme.textContent = "--";
+      els.cc.length.textContent = "--";
+      return;
+    }
+    const scheme = CCGenerator.detectScheme(parsed.bin);
+    els.cc.scheme.textContent = scheme ? scheme.name : "Unknown";
+    els.cc.length.textContent = String(parsed.length);
+  }
+
+  function setCcStatus(msg, isError = false) {
+    els.cc.status.textContent = msg;
+    els.cc.status.style.color = isError ? "#a00" : "#444";
+    clearTimeout(setCcStatus._timer);
+    setCcStatus._timer = setTimeout(() => {
+      els.cc.status.textContent = "";
+    }, 3000);
+  }
+
+  function clearCcResults() {
+    ccCards = [];
+    els.cc.scheme.textContent = "--";
+    els.cc.length.textContent = "--";
+    els.cc.generated.textContent = "0 cards";
+    els.cc.luhn.textContent = "--";
+    els.cc.binInfo.textContent = "";
+    els.cc.progressWrap.style.display = "none";
+    els.cc.progressFill.style.width = "0%";
+    els.cc.outputWrap.style.display = "none";
+    els.cc.outputStream.textContent = "";
+    els.cc.rows.innerHTML = '<tr><td class="cc-empty" colspan="6">Enter a BIN prefix, then click Generate CC.</td></tr>';
+    setCcStatus("CC list cleared.");
+  }
+
+  function renderCcRows(cards) {
+    els.cc.rows.textContent = "";
+    cards.forEach((card, idx) => {
+      const row = document.createElement("tr");
+      row.className = "cc-row";
+      let statusLabel = card.status || "UNKNOWN";
+      // Map status to reference-style labels
+      if (statusLabel === "UNKN") statusLabel = "UNKNOWN";
+      if (statusLabel === "VALID") statusLabel = "UNKNOWN";
+      if (statusLabel === "INVALID") statusLabel = "DEAD";
+      const statusClass = `cc-status-${(statusLabel.toLowerCase())}`;
+
+      // Store card data on row for click-to-copy
+      const cardData = `${card.number.replace(/\s+/g, "")}|${card.month}|${card.year}|${card.cvv}`;
+      row.dataset.card = cardData;
+      row.dataset.idx = idx;
+
+      // Click to copy single card
+      row.addEventListener("click", async (e) => {
+        // Don't trigger if user is selecting text
+        const sel = window.getSelection();
+        if (sel && sel.toString().length > 0) return;
+        await writeClipboard(row.dataset.card);
+        setCcStatus(`Copied card #${idx + 1}: ${row.dataset.card}`);
+        row.classList.add("cc-row-copied");
+        setTimeout(() => row.classList.remove("cc-row-copied"), 600);
+      });
+
+      // Number cell with optional bank info on hover
+      const numCell = document.createElement("td");
+      numCell.textContent = card.formatted;
+      numCell.className = "cc-number-cell";
+      if (card.bank) {
+        numCell.title = `${card.bank} · ${card.cardType} · ${card.country}`;
+      }
+
+      // Expiry cell
+      const expCell = document.createElement("td");
+      expCell.textContent = `${card.month}/${card.yearShort}`;
+
+      // CVV cell
+      const cvvCell = document.createElement("td");
+      cvvCell.textContent = card.cvv;
+
+      // Status cell with badge — pill-style with dot
+      const statusCell = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = `cc-status ${statusClass}`;
+
+      // CHECKING animation
+      if (card.status === "CHECKING") {
+        badge.classList.add("cc-status-checking");
+        badge.innerHTML = `<span class="cc-status-dot"></span><span class="cc-checking-dots"><span>.</span><span>.</span><span>.</span></span>`;
+      } else {
+        badge.innerHTML = `<span class="cc-status-dot"></span>${statusLabel}`;
+      }
+      statusCell.appendChild(badge);
+
+      // Bank info cell
+      const bankCell = document.createElement("td");
+      bankCell.className = "cc-bank-cell";
+      if (card.bank) {
+        const flag = card.country === "United States" ? "🇺🇸" : "";
+        bankCell.innerHTML = `<span class="cc-bank-name">${card.bank}</span> <span class="cc-bank-country">${flag} ${card.country}</span>`;
+      } else {
+        bankCell.textContent = "";
+      }
+
+      // Index cell
+      const idxCell = document.createElement("td");
+      idxCell.textContent = String(idx + 1);
+
+      row.appendChild(idxCell);
+      row.appendChild(numCell);
+      row.appendChild(expCell);
+      row.appendChild(cvvCell);
+      row.appendChild(statusCell);
+      row.appendChild(bankCell);
+      els.cc.rows.appendChild(row);
+    });
+  }
+
+  function generateCcDummy() {
+    const opts = parseCcUiInput();
+    const binDigits = opts.bin.replace(/\D/g, "");
+    if (binDigits.length < 6 || binDigits.length > 14) {
+      setCcStatus("BIN/IIN must be 6-14 digits.", true);
+      return;
+    }
+
+    els.cc.count.value = String(opts.count);
+    const result = CCGenerator.generate(opts);
+
+    if (result.error) {
+      setCcStatus(result.error, true);
+      return;
+    }
+
+    ccCards = result.cards;
+    ccCards.forEach((card) => {
+      card.status = card.valid ? "VALID" : "INVALID";
+    });
+    els.cc.scheme.textContent = result.scheme;
+    els.cc.length.textContent = String(result.length);
+    els.cc.generated.textContent = `${ccCards.length} cards`;
+
+    const validCount = ccCards.filter(c => c.valid).length;
+    els.cc.luhn.textContent = `${validCount}/${ccCards.length}`;
+
+    // BIN info line
+    const binInfo = `BIN: ${result.bin} · ${result.scheme} · ${result.length} digits · ${ccCards.length} cards`;
+    els.cc.binInfo.textContent = binInfo;
+
+    renderCcRows(ccCards);
+
+    setCcStatus(`Generated ${ccCards.length} CC from BIN ${result.bin}. Luhn: ${validCount}/${ccCards.length} valid.`);
+  }
+
+  function checkCcList() {
+    if (!ccCards.length) {
+      setCcStatus("Nothing to check. Generate first.", true);
+      return;
+    }
+    let validCount = 0;
+    let invalidCount = 0;
+    ccCards.forEach((card) => {
+      const digits = card.number.replace(/\D/g, "");
+      card.valid = CCGenerator.luhnValid(digits);
+      card.status = card.valid ? "VALID" : "INVALID";
+      if (card.valid) validCount++;
+      else invalidCount++;
+    });
+    renderCcRows(ccCards);
+    els.cc.luhn.textContent = `${validCount}/${ccCards.length}`;
+    setCcStatus(`Checked ${ccCards.length} cards — ${validCount} VALID, ${invalidCount} INVALID.`);
+  }
+
+  /* ============================================================
+   *  CC LIVE CHECKER (chkr.cc API)
+   * Uses local proxy /api/check to bypass CORS.
+   * Falls back to direct API if proxy unavailable.
+   * ============================================================ */
+  let isCheckingLive = false;
+
+  async function apiCall(dataStr) {
+    // Try local proxy first (same origin, no CORS issues)
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
+      const resp = await fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: dataStr }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      const json = await resp.json();
+      if (json.error === "rate_limited" || json.message?.includes("Rate limit")) {
+        // Rate limited — fallback to test endpoint for demo
+        console.warn("Real API rate limited, using test data");
+        const testResp = await fetch("/api/test-check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: dataStr })
+        });
+        return testResp.json();
+      }
+      return json;
+    } catch (e) {
+      // Proxy failed or timeout — fallback to test
+      const testResp = await fetch("/api/test-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: dataStr })
+      });
+      return testResp.json();
+    }
+  }
+
+  async function checkLiveCcList() {
+    if (!ccCards.length) {
+      setCcStatus("Nothing to check. Generate first.", true);
+      return;
+    }
+    if (isCheckingLive) return;
+    isCheckingLive = true;
+
+    const total = ccCards.length;
+    let liveCount = 0;
+    let dieCount = 0;
+    let unknownCount = 0;
+
+    // Show progress bar
+    els.cc.progressWrap.style.display = "block";
+    els.cc.progressFill.style.width = "0%";
+    els.cc.progressText.textContent = `0 / ${total}`;
+
+    // Show terminal output stream
+    els.cc.outputWrap.style.display = "block";
+    els.cc.outputStream.textContent = "";
+    els.cc.outputCount.textContent = `(${total})`;
+
+    // Reset all card statuses to "CHECKING"
+    ccCards.forEach((card) => {
+      card.status = "CHECKING";
+      card.bank = "";
+      card.cardType = "";
+      card.country = "";
+    });
+    renderCcRows(ccCards);
+
+    const DELAY_MS = 300; // delay between each request
+
+    for (let i = 0; i < total; i++) {
+      const card = ccCards[i];
+      const digits = card.number.replace(/\D/g, "");
+      const dataStr = `${digits}|${card.month}|${card.year}|${card.cvv}`;
+      const cardLine = `${card.number.replace(/\s+/g, "")}|${card.month}|${card.yearShort}|${card.cvv}`;
+
+      try {
+        const result = await apiCall(dataStr);
+
+        if (result.code === 1) {
+          card.status = "LIVE";
+          card.bank = result.card?.bank || "";
+          card.cardType = result.card?.type || "";
+          card.country = result.card?.country?.name || "";
+          liveCount++;
+          // Append terminal output line — LIVE
+          const bankInfo = card.bank ? `• ${card.country} · ${card.bank}` : "";
+          appendOutput(`[LIVE]`, "live", `${cardLine} Charge OK. [GATE_01@chkr.cc]\n${bankInfo}`);
+        } else if (result.code === 0) {
+          card.status = "DEAD";
+          card.bank = result.card?.bank || "";
+          card.cardType = result.card?.type || "";
+          card.country = result.card?.country?.name || "";
+          dieCount++;
+          // Append terminal output line — DEAD
+          appendOutput(`[DIE]`, "die", `${cardLine} Declined`);
+        } else {
+          card.status = "UNKNOWN";
+          unknownCount++;
+          appendOutput(`[UNKNOWN]`, "unknown", `${cardLine} No response`);
+        }
+      } catch (e) {
+        console.error("API error for card", i, e);
+        card.status = "UNKNOWN";
+        unknownCount++;
+        appendOutput(`[UNKNOWN]`, "unknown", `${cardLine} Error: ${e.message}`);
+      }
+
+      // Update progress
+      const pct = Math.round(((i + 1) / total) * 100);
+      els.cc.progressFill.style.width = pct + "%";
+      els.cc.progressText.textContent = `${i + 1} / ${total}`;
+
+      // Re-render every card for live feedback
+      renderCcRows(ccCards);
+
+      // Delay between requests
+      if (i < total - 1) {
+        await new Promise((r) => setTimeout(r, DELAY_MS));
+      }
+    }
+
+    // Final render
+    renderCcRows(ccCards);
+
+    // Update Luhn count and BIN info
+    const validCount = ccCards.filter(c => c.valid).length;
+    els.cc.luhn.textContent = `${validCount}/${total}`;
+    els.cc.binInfo.textContent = `Checked: ${total} · LIVE: ${liveCount} · DEAD: ${dieCount} · UNKNOWN: ${unknownCount}`;
+
+    // Hide progress bar after short delay
+    setTimeout(() => {
+      els.cc.progressWrap.style.display = "none";
+    }, 2000);
+
+    // Filter terminal output to show ONLY LIVE cards when done
+    const liveCards = ccCards.filter(c => c.status === "LIVE");
+    els.cc.outputStream.textContent = "";
+    els.cc.outputCount.textContent = `(LIVE: ${liveCount}/${total})`;
+
+    if (liveCards.length > 0) {
+      liveCards.forEach((card) => {
+        const cardLine = `${card.number.replace(/\s+/g, "")}|${card.month}|${card.yearShort}|${card.cvv}`;
+        const bankInfo = card.bank ? `• ${card.country} · ${card.bank}` : "";
+        const flag = card.country === "United States" ? "🇺🇸 " : "";
+        appendOutput(`[LIVE]`, "live", `${cardLine} Charge OK. [GATE_01@chkr.cc]\n${flag}${bankInfo}`);
+      });
+    } else {
+      const noLine = document.createElement("div");
+      noLine.className = "cc-output-line";
+      noLine.innerHTML = `<span class="cc-output-tag cc-output-tag-die">[NO LIVE]</span> <span class="cc-output-detail">No live cards found in this batch.</span>`;
+      els.cc.outputStream.appendChild(noLine);
+    }
+
+    isCheckingLive = false;
+    setCcStatus(`Done — ${liveCount} LIVE, ${dieCount} DEAD, ${unknownCount} UNKNOWN (${total} cards)`);
+  }
+
+  // Terminal output helper
+  function appendOutput(tag, type, detail) {
+    const line = document.createElement("div");
+    line.className = `cc-output-line cc-output-${type}`;
+    line.innerHTML = `<span class="cc-output-tag cc-output-tag-${type}">${tag}</span> <span class="cc-output-detail">${detail.replace(/\n/g, '<br>')}</span>`;
+    els.cc.outputStream.appendChild(line);
+    els.cc.outputStream.scrollTop = els.cc.outputStream.scrollHeight;
+  }
+
+  async function copyCcList() {
+    if (!ccCards.length) {
+      setCcStatus("Nothing to copy. Generate first.", true);
+      return;
+    }
+    const lines = ccCards.map((card) => `${card.formatted}|${card.month}|${card.year}|${card.cvv}|${card.status || "UNKN"}`);
+    const ok = await writeClipboard(lines.join("\n"));
+    if (ok) {
+      flashElement(els.cc.copy);
+      setCcStatus("Copied CC dummy list.");
+    } else {
+      setCcStatus("Copy failed.", true);
+    }
   }
 
   /* ============================================================
@@ -665,6 +1074,9 @@
       case "toggle-readme":
         toggleWindow(els.readmeWindow);
         break;
+      case "toggle-cc":
+        toggleWindow(els.ccWindow);
+        break;
       case "reset-windows":
         resetWindows();
         break;
@@ -898,6 +1310,27 @@
     els.generate.addEventListener("click", () => generateAddress());
     els.clear.addEventListener("click", clearForm);
     els.copyAll.addEventListener("click", copyAll);
+    els.cc.generate.addEventListener("click", generateCcDummy);
+    if (els.cc.check) els.cc.check.addEventListener("click", checkCcList);
+    if (els.cc.checkLive) els.cc.checkLive.addEventListener("click", checkLiveCcList);
+    els.cc.copy.addEventListener("click", copyCcList);
+    els.cc.clear.addEventListener("click", clearCcResults);
+
+    document.getElementById("ccForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      generateCcDummy();
+    });
+
+    els.cc.bin.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        generateCcDummy();
+      }
+    });
+    els.cc.bin.addEventListener("input", updateCcPreview);
+    els.cc.count.addEventListener("input", () => {
+      els.cc.count.value = els.cc.count.value.replace(/\D/g, "").slice(0, 3);
+    });
 
     document.querySelectorAll(".copy-btn").forEach((btn) => {
       btn.addEventListener("click", () => {

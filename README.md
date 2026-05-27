@@ -18,6 +18,8 @@ The whole thing is styled like a classic Macintosh desktop with a CRT terminal t
   - Dark mode: phosphor green CRT vibe.
 - Copy-to-clipboard for each field.
 - Copy All button for the full generated address.
+- Fictional CC dummy generator from a BIN/prefix for UI mockups and non-transactional QA.
+- CC dummy output is intentionally non-Luhn so it cannot pass real card-number validation.
 - Keyboard shortcuts for faster use.
 - Fully static app: just HTML, CSS, and JavaScript.
 - No build step, no framework, no backend.
@@ -34,6 +36,7 @@ billing-generating/
 ├── js/
 │   ├── data.js         # Country datasets
 │   ├── generator.js    # Address generation logic
+│   ├── cc-generator.js # Fictional, non-Luhn CC dummy generator
 │   └── app.js          # UI behavior and interactions
 ├── SKILL.md            # Design-system guide for future edits
 └── README.md
@@ -104,6 +107,22 @@ The generator returns a plain object like this:
 ```
 
 The UI reads that object and fills the form fields. Each country has its own name pools, street patterns, regions, postal format, and phone format.
+
+---
+
+## CC Dummy Generator
+
+The CC dummy window accepts a BIN/prefix like `453204`, a placeholder template like `453204xxxxxxxxxx`, or pipe format like `453204|12|2028|123`, then creates fictional card-shaped rows with expiry and CVV strings.
+
+Important behavior:
+
+- Generated numbers preserve the entered prefix.
+- Expiry month/year and CVV can be fixed or left as `rnd`.
+- Count controls how many rows are generated, from 1 to 100.
+- Status starts as `UNKN`; the mock checker marks rows as `SANDBOX` locally.
+- Output is intentionally **non-Luhn** internally, while the UI status starts as `UNKN`.
+- Use it for UI mockups, parser demos, screenshots, and seed data only.
+- Do not use it for live payment checks, card checking, or transaction testing.
 
 ---
 

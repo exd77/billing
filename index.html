@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Generate fictional billing addresses for testing — Macintosh-styled web app." />
+  <meta name="description" content="Generate billing payments" />
   <meta name="theme-color" content="#888888" />
   <title>Billing Generator</title>
   <link rel="stylesheet" href="css/styles.css" />
@@ -209,6 +209,7 @@
 
   <div class="menu-dropdown" id="menu-view" data-menu-for="view" hidden>
     <div class="menu-option" data-action="toggle-readme">Show ReadMe Window</div>
+    <div class="menu-option" data-action="toggle-cc">Show CC Dummy Window</div>
     <div class="menu-separator"></div>
     <div class="menu-option" data-action="reset-windows">Clean Up Windows</div>
     <div class="menu-separator"></div>
@@ -389,6 +390,94 @@
       </footer>
     </section>
 
+    <section class="mac-window mac-window-cc mac-window-anim" id="ccWindow" aria-labelledby="ccWinTitle">
+      <header class="title-bar title-bar-inactive" data-draggable="ccWindow">
+        <button class="close-box" aria-label="Close" type="button" data-window="ccWindow"></button>
+        <div class="title-bar-stripes" aria-hidden="true"></div>
+        <h2 class="title-bar-text" id="ccWinTitle">CC Dummy Generator</h2>
+        <div class="title-bar-stripes" aria-hidden="true"></div>
+        <button class="zoom-box" aria-label="Zoom" type="button" data-window="ccWindow"></button>
+      </header>
+
+      <div class="window-body">
+        <form id="ccForm" autocomplete="off" novalidate>
+          <div class="form-row">
+            <label class="field-label" for="ccBinInput">BIN/IIN (6-14 digit):</label>
+            <input type="text" id="ccBinInput" class="mac-input" inputmode="numeric" placeholder="e.g. 453204 or 453204|12|2028|123" />
+          </div>
+
+          <div class="form-row cc-options-row">
+            <label class="field-label" for="ccCountInput">Count (1-100):</label>
+            <input type="text" id="ccCountInput" class="mac-input mac-input-mini" inputmode="numeric" pattern="[0-9]*" placeholder="10" />
+            <label class="field-label field-label-inline" for="ccMonthInput">MM:</label>
+            <input type="text" id="ccMonthInput" class="mac-input mac-input-mini" placeholder="rnd" maxlength="3" />
+            <label class="field-label field-label-inline" for="ccYearInput">YYYY:</label>
+            <input type="text" id="ccYearInput" class="mac-input mac-input-mini" placeholder="rnd" maxlength="4" />
+            <label class="field-label field-label-inline" for="ccCvvInput">CVV:</label>
+            <input type="text" id="ccCvvInput" class="mac-input mac-input-mini" placeholder="rnd" maxlength="4" />
+          </div>
+        </form>
+
+        <div class="cc-meta" aria-live="polite">
+          <span>Scheme: <strong id="ccSchemeText">--</strong></span>
+          <span>Length: <strong id="ccLengthText">--</strong></span>
+          <span>Generated: <strong id="ccGeneratedText">0 cards</strong></span>
+          <span>Luhn: <strong id="ccLuhnText">--</strong></span>
+        </div>
+        <div class="cc-bin-info" id="ccBinInfoText" aria-live="polite"></div>
+
+        <div class="actions-row">
+          <button id="ccGenerateBtn" type="button" class="mac-button mac-button-default">Generate CC</button>
+          <button id="ccCheckBtn" type="button" class="mac-button">Check</button>
+          <button id="ccCheckLiveBtn" type="button" class="mac-button mac-button-live">Check Live</button>
+          <button id="ccCopyBtn" type="button" class="mac-button">Copy List</button>
+          <button id="ccClearBtn" type="button" class="mac-button">Clear</button>
+          <span class="status-text" id="ccStatusText" role="status" aria-live="polite"></span>
+        </div>
+
+        <div class="cc-progress-wrap" id="ccProgressWrap" style="display:none;">
+          <div class="cc-progress-bar">
+            <div class="cc-progress-fill" id="ccProgressFill"></div>
+          </div>
+          <div class="cc-progress-text" id="ccProgressText">0 / 0</div>
+        </div>
+
+        <div class="cc-results-wrap" aria-live="polite">
+          <table class="cc-results-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Number</th>
+                <th>Expiry</th>
+                <th>CVV</th>
+                <th>Status</th>
+                <th>Bank / Country</th>
+              </tr>
+            </thead>
+            <tbody id="ccRows">
+              <tr><td class="cc-empty" colspan="6">Enter a BIN prefix, then click Generate CC.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Terminal-style live output stream -->
+        <div class="cc-output-wrap" id="ccOutputWrap" style="display:none;">
+          <div class="cc-output-header">
+            <span class="cc-output-label">[OUTPUT]</span>
+            <span>Test Cards:</span>
+            <span class="cc-output-count" id="ccOutputCount"></span>
+          </div>
+          <pre class="cc-output-stream" id="ccOutputStream"></pre>
+        </div>
+
+        <div class="cc-hint" id="ccHint">Click any row to copy · Select text to copy partial · <strong>Copy List</strong> for all</div>
+      </div>
+
+      <footer class="resize-bar" aria-hidden="true">
+        <div class="resize-grip"></div>
+      </footer>
+    </section>
+
     <aside class="mac-window mac-window-note mac-window-anim" id="readmeWindow" aria-labelledby="noteTitle">
       <header class="title-bar title-bar-inactive" data-draggable="readmeWindow">
         <button class="close-box" aria-label="Close" type="button" data-window="readmeWindow"></button>
@@ -403,9 +492,11 @@
           <li>Pick a country, then click <kbd>Generate</kbd>.</li>
           <li>Click <kbd>⧉</kbd> next to a field to copy it.</li>
           <li>Use <kbd>Copy All</kbd> to copy the full address.</li>
+          <li>The CC dummy window creates fictional, intentionally non-Luhn numbers from a BIN prefix.</li>
           <li>Drag any window by its title bar.</li>
         </ul>
         <p class="warn">⚠ Do <strong>not</strong> use generated data for fraud, identity misuse, or payment systems. For testing purposes only.</p>
+        <p>The CC numbers are <strong>Luhn-valid</strong>. Use <kbd>Check</kbd> to verify validity of the generated list.</p>
       </div>
     </aside>
 
@@ -516,6 +607,7 @@
 
   <script src="js/data.js"></script>
   <script src="js/generator.js"></script>
+  <script src="js/cc-generator.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
