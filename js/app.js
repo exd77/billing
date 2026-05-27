@@ -423,7 +423,15 @@
       try {
         const result = await apiCall(dataStr);
 
-        if (result.code === 1) {
+        // Normalize: handle both {code: 1} and {status: "Live"} formats
+        let code = result.code;
+        if (code === undefined || code === null) {
+          if (result.status === "Live" || result.status === "live") code = 1;
+          else if (result.status === "Die" || result.status === "die" || result.status === "Dead") code = 0;
+          else code = -1;
+        }
+
+        if (code === 1) {
           card.status = "LIVE";
           card.bank = result.card?.bank || "";
           card.cardType = result.card?.type || "";
@@ -432,7 +440,7 @@
           // Append terminal output line — LIVE
           const bankInfo = card.bank ? `• ${card.country} · ${card.bank}` : "";
           appendOutput(`[LIVE]`, "live", `${cardLine} Charge OK. [GATE_01@chkr.cc]\n${bankInfo}`);
-        } else if (result.code === 0) {
+        } else if (code === 0) {
           card.status = "DEAD";
           card.bank = result.card?.bank || "";
           card.cardType = result.card?.type || "";

@@ -1,12 +1,15 @@
 // Vercel serverless function — returns mock LIVE/DEAD data for testing
+// Format matches chkr.cc API response structure
+
 const BANKS = [
-  { bank: "Wells Fargo Bank", country: "US", countryName: "United States" },
-  { bank: "Citibank NA", country: "US", countryName: "United States" },
-  { bank: "PNC Bank", country: "US", countryName: "United States" },
-  { bank: "Capital One NA", country: "US", countryName: "United States" },
-  { bank: "US Bank National Association", country: "US", countryName: "United States" },
-  { bank: "Chase Bank USA", country: "US", countryName: "United States" },
-  { bank: "Bank of America NA", country: "US", countryName: "United States" },
+  "Wells Fargo Bank",
+  "Citibank NA",
+  "PNC Bank",
+  "Capital One NA",
+  "US Bank National Association",
+  "Chase Bank",
+  "Bank of America NA",
+  "The Bancorp Bank National Association",
 ];
 
 module.exports = async function handler(req, res) {
@@ -30,32 +33,28 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // Simulate random delay
-  await new Promise((r) => setTimeout(r, 300 + Math.random() * 700));
+  // Simulate delay
+  await new Promise((r) => setTimeout(r, 200 + Math.random() * 500));
 
-  // 60% chance LIVE
-  const isLive = Math.random() < 0.6;
+  // 40% chance LIVE (matches server.py weights)
+  const code = [0, 0, 1, 1, 0, 1, 0, 0, 1, 0][Math.floor(Math.random() * 10)];
   const bank = BANKS[Math.floor(Math.random() * BANKS.length)];
 
-  if (isLive) {
-    res.status(200).json({
-      data,
-      status: "Live",
-      "card type": "Charge OK.",
-      gate: "GATE_01",
-      bank: bank.bank,
-      country: bank.country,
-      country_name: bank.countryName,
-    });
-  } else {
-    res.status(200).json({
-      data,
-      status: "Die",
-      "card type": "Declined.",
-      gate: "GATE_01",
-      bank: "",
-      country: "",
-      country_name: "",
-    });
-  }
+  const result = {
+    code,
+    status: code === 1 ? "Live" : "Die",
+    message: code === 1 ? "Approved" : "Declined",
+    card: {
+      card: data,
+      bank,
+      type: "mastercard",
+      category: Math.random() > 0.3 ? "credit" : "debit",
+      country: {
+        name: "United States",
+        emoji: "🇺🇸",
+      },
+    },
+  };
+
+  res.status(200).json(result);
 };
