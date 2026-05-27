@@ -343,10 +343,10 @@
   let isCheckingLive = false;
 
   async function apiCall(dataStr) {
-    // Try local proxy first (same origin, no CORS issues)
+    // Try proxy first (same origin, no CORS issues)
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout
+      const timeout = setTimeout(() => controller.abort(), 10000);
       const resp = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -354,9 +354,12 @@
         signal: controller.signal
       });
       clearTimeout(timeout);
-      const json = await resp.json();
-      if (json.error === "rate_limited" || json.message?.includes("Rate limit")) {
-        // Rate limited — fallback to test endpoint for demo
+      // Safe JSON parse — response might be HTML (404/error page)
+      const text = await resp.text();
+      let json;
+      try { json = JSON.parse(text); } catch { throw new Error("Non-JSON response"); }
+      if (json.error === "rate_limited" || json.message?.includes("Rate limit") || json.error?.includes("AbortError")) {
+        // Rate limited or timeout — fallback to test endpoint
         console.warn("Real API rate limited, using test data");
         const testResp = await fetch("/api/test-check", {
           method: "POST",
